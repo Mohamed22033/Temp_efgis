@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temp Safe — Because every dose deserves the right temperature</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b1f1e;
+    --ink-2:#122d2b;
+    --paper:#efeae0;
+    --paper-2:#e4ddcc;
+    --cool:#6fe7dd;
+    --cool-dim:#3f8f89;
+    --heat:#ff6b35;
+    --heat-deep:#c1121f;
+    --muted:#9fb8b6;
+    --muted-ink:#5b6f6d;
+    --line: rgba(159,184,182,0.25);
+    --serif: 'Fraunces', serif;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--sans);
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important;}
+  }
+  ::selection{ background:var(--heat); color:var(--ink); }
+
+  a{color:inherit;}
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 32px; }
+  section{ position:relative; }
+
+  /* ---------- Progress thermometer ---------- */
+  #gauge{
+    position:fixed;
+    right:26px;
+    top:50%;
+    transform:translateY(-50%);
+    width:34px;
+    height:220px;
+    z-index:40;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    opacity:0;
+    transition:opacity .5s ease;
+    pointer-events:none;
+  }
+  #gauge.visible{ opacity:1; }
+  #gauge .tube{
+    position:relative;
+    width:10px;
+    flex:1;
+    border-radius:6px;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.18);
+    overflow:hidden;
+  }
+  #gauge .fill{
+    position:absolute;
+    bottom:0; left:0; right:0;
+    height:20%;
+    background:linear-gradient(180deg, var(--heat-deep), var(--heat), var(--cool));
+    transition:height .25s ease-out, background .25s ease-out;
+  }
+  #gauge .bulb{
+    width:20px; height:20px; border-radius:50%;
+    background:var(--cool-dim);
+    border:1px solid rgba(255,255,255,0.18);
+    transition:background .25s ease-out;
+  }
+  #gauge .reading{
+    font-size:12px;
+    letter-spacing:0.02em;
+    color:var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Nav dot ---------- */
+  #navdot{
+    position:fixed; top:28px; left:32px; z-index:40;
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:0.01em;
+    color:var(--paper);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    opacity:0;
+    transition:opacity .5s ease;
+  }
+  #navdot.visible{opacity:1;}
+  #navdot .dot{ width:8px; height:8px; border-radius:50%; background:var(--cool); box-shadow:0 0 12px var(--cool); }
+
+  /* ================= HERO ================= */
+  .hero{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 30%, rgba(111,231,221,0.10), transparent 70%),
+      var(--ink);
+    padding:32px;
+  }
+  .hero .eyebrow{
+    font-size:14px;
+    color:var(--muted);
+    margin-bottom:18px;
+    max-width:360px;
+  }
+  .hero h1{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:clamp(3.2rem, 12vw, 7.5rem);
+    letter-spacing:-0.01em;
+    margin:0;
+    line-height:0.95;
+    color:var(--paper);
+  }
+  .hero h1 .safe{ color:var(--cool); font-style:italic; }
+  .hero .tagline{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:clamp(1.1rem, 2.2vw, 1.5rem);
+    color:var(--muted);
+    margin-top:26px;
+    max-width:480px;
+  }
+  .start-btn{
+    margin-top:56px;
+    background:transparent;
+    border:1px solid var(--cool-dim);
+    color:var(--cool);
+    font-family:var(--sans);
+    font-size:15px;
+    padding:16px 34px;
+    border-radius:999px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    transition:background .25s ease, color .25s ease, transform .2s ease;
+  }
+  .start-btn:hover{ background:var(--cool); color:var(--ink); transform:translateY(-2px); }
+  .start-btn:focus-visible{ outline:2px solid var(--cool); outline-offset:4px; }
+  .start-btn svg{ width:14px; height:14px; }
+
+  .scroll-hint{
+    position:absolute;
+    bottom:36px;
+    font-size:12px;
+    color:var(--muted-ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+  }
+  .scroll-hint .bar{ width:1px; height:28px; background:var(--muted-ink); position:relative; overflow:hidden; }
+  .scroll-hint .bar::after{
+    content:''; position:absolute; left:0; top:-100%; width:100%; height:100%;
+    background:var(--cool);
+    animation:hint 1.8s ease-in-out infinite;
+  }
+  @keyframes hint{ 0%{top:-100%;} 60%{top:100%;} 100%{top:100%;} }
+
+  /* ================= SCENE GENERIC ================= */
+  .scene{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    padding:120px 0;
+  }
+  .scene-label{
+    font-family:var(--sans);
+    font-size:13px;
+    color:var(--cool-dim);
+    margin-bottom:14px;
+    display:block;
+  }
+  .scene h2{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:clamp(2rem, 5vw, 3.2rem);
+    line-height:1.1;
+    margin:0 0 22px 0;
+    max-width:14ch;
+  }
+  .scene p.lead{
+    font-size:17px;
+    color:var(--muted);
+    max-width:46ch;
+    margin:0 0 8px 0;
+  }
+  .reveal{
+    opacity:0;
+    transform:translateY(24px);
+    transition:opacity .8s ease, transform .8s ease;
+  }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  .reveal.d1{ transition-delay:.08s; }
+  .reveal.d2{ transition-delay:.18s; }
+  .reveal.d3{ transition-delay:.28s; }
+
+  /* ---- Scene 1: The Problem ---- */
+  #scene1{ background:linear-gradient(180deg, var(--ink) 0%, #1a2b23 100%); }
+  .heat-stage{
+    position:relative;
+    height:320px;
+    border-radius:18px;
+    border:1px solid var(--line);
+    background:radial-gradient(circle at 80% 20%, rgba(255,107,53,0.15), transparent 55%), var(--ink-2);
+    overflow:hidden;
+    margin-top:36px;
+  }
+  .sun{
+    position:absolute; top:26px; right:34px;
+    width:60px; height:60px; border-radius:50%;
+    background:radial-gradient(circle, #ffd27a, var(--heat));
+    box-shadow:0 0 0 0 rgba(255,107,53,0.4);
+    transition:box-shadow 1.2s ease, filter 1.2s ease;
+  }
+  .heat-stage.hot .sun{ box-shadow:0 0 60px 18px rgba(255,107,53,0.45); filter:saturate(1.3); }
+  .mariam{
+    position:absolute; left:44px; bottom:26px;
+    width:100px; height:150px;
+    animation:sway 3.6s ease-in-out infinite;
+    transform-origin:bottom center;
+  }
+  @keyframes sway{
+    0%,100%{ transform:rotate(-1deg); }
+    50%{ transform:rotate(1deg); }
+  }
+  .mariam .case{ transition:fill 1.2s ease, filter 1.2s ease; }
+  .heat-stage.hot .mariam .case{ fill:#ffb199; filter:drop-shadow(0 0 8px rgba(255,107,53,0.7)); }
+  .mariam .cheek{ transition:opacity 1.2s ease; opacity:0; }
+  .heat-stage.hot .mariam .cheek{ opacity:0.8; }
+  .heat-readout{
+    position:absolute; left:24px; top:24px;
+    font-variant-numeric: tabular-nums;
+  }
+  .heat-readout .num{
+    font-family:var(--serif);
+    font-size:52px;
+    font-weight:500;
+    transition:color .8s ease;
+    color:var(--cool);
+  }
+  .heat-stage.hot .heat-readout .num{ color:var(--heat); }
+  .heat-readout .flag{
+    display:inline-block; margin-left:10px; font-size:13px; color:var(--muted);
+  }
+  .warn-line{
+    position:absolute; bottom:24px; left:24px; right:24px;
+    font-size:13px; color:var(--muted-ink);
+    border-top:1px dashed var(--line);
+    padding-top:14px;
+    opacity:0; transition:opacity .5s ease .3s;
+  }
+  .heat-stage.hot .warn-line{ opacity:1; color:#ffb199; }
+
+  /* ---- Scene 2: The Question ---- */
+  #scene2{ justify-content:center; text-align:center; background:var(--ink); }
+  #scene2 .wrap{ display:flex; flex-direction:column; align-items:center; }
+  .quote{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:clamp(1.5rem, 4vw, 2.4rem);
+    max-width:16ch;
+    color:var(--paper);
+  }
+  .quote-name{ font-size:13px; color:var(--muted); margin-top:16px; font-family:var(--sans); }
+  .arrive{
+    margin-top:64px;
+    font-family:var(--serif);
+    font-size:clamp(2.6rem, 8vw, 4.8rem);
+    color:var(--cool);
+    font-weight:500;
+  }
+
+  /* ---- Scene 3: Meet Temp Safe (parts) ---- */
+  #scene3{ background:linear-gradient(180deg, var(--ink) 0%, #10201e 100%); }
+  .parts-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px,1fr));
+    gap:14px;
+    margin-top:40px;
+  }
+  .part-card{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px 20px;
+    background:rgba(255,255,255,0.02);
+    cursor:pointer;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .part-card:hover, .part-card:focus-visible{
+    border-color:var(--cool-dim);
+    background:rgba(111,231,221,0.05);
+  }
+  .part-card .glyph{ font-size:22px; }
+  .part-card h3{
+    font-family:var(--sans);
+    font-size:15px;
+    font-weight:600;
+    margin:14px 0 8px 0;
+  }
+  .part-card p{
+    font-size:13.5px;
+    color:var(--muted);
+    margin:0;
+    max-height:0;
+    overflow:hidden;
+    opacity:0;
+    transition:max-height .3s ease, opacity .3s ease, margin .3s ease;
+  }
+  .part-card.open p{ max-height:120px; opacity:1; }
+
+  /* ---- Scene 4: How it works ---- */
+  #scene4{ background:var(--ink-2); }
+  .flow{
+    margin-top:44px;
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+  .flow-step{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:16px 0;
+    border-bottom:1px solid var(--line);
+    opacity:0.3;
+    transition:opacity .4s ease;
+  }
+  .flow-step.active{ opacity:1; }
+  .flow-step:last-child{ border-bottom:none; }
+  .flow-step .idx{
+    font-family:var(--serif);
+    font-style:italic;
+    color:var(--cool-dim);
+    font-size:15px;
+    width:28px;
+  }
+  .flow-step .name{ font-size:15.5px; }
+  .flow-step .name b{ font-weight:600; color:var(--paper); }
+  .before-after{
+    margin-top:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:28px;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:32px;
+  }
+  .ba-block{ text-align:center; }
+  .ba-block .val{ font-family:var(--serif); font-size:44px; }
+  .ba-block.before .val{ color:var(--heat); }
+  .ba-block.after .val{ color:var(--cool); }
+  .ba-block .cap{ font-size:12px; color:var(--muted); margin-top:8px; }
+  .arrow-sep{ color:var(--muted-ink); font-size:20px; }
+  .note{
+    margin-top:18px;
+    font-size:12px;
+    color:var(--muted-ink);
+    max-width:52ch;
+  }
+
+  /* ---- Scene 5: Back to Mariam ---- */
+  #scene5{
+    background:linear-gradient(180deg, #10201e 0%, var(--ink) 100%);
+    text-align:center;
+    justify-content:center;
+  }
+  #scene5 .wrap{ display:flex; flex-direction:column; align-items:center; }
+  .stable-badge{
+    margin-top:34px;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--cool-dim);
+    color:var(--cool);
+    padding:12px 22px;
+    border-radius:999px;
+    font-size:14px;
+  }
+  .stable-badge .pulse{
+    width:8px; height:8px; border-radius:50%; background:var(--cool);
+    box-shadow:0 0 0 0 rgba(111,231,221,0.7);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(111,231,221,0.5); }
+    70%{ box-shadow:0 0 0 10px rgba(111,231,221,0); }
+    100%{ box-shadow:0 0 0 0 rgba(111,231,221,0); }
+  }
+  .closing-line{
+    margin-top:38px;
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:clamp(1.4rem, 3.4vw, 2.1rem);
+    max-width:22ch;
+    color:var(--paper);
+  }
+
+  /* ================= PRODUCT SECTION (light) ================= */
+  .product-section{
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .product-section .scene-label{ color:var(--heat-deep); }
+  .product-section .scene p.lead{ color:var(--muted-ink); }
+  .product-section h2{ color:var(--ink); }
+
+  #scene6{ padding-bottom:60px; }
+  .feature-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(230px,1fr));
+    gap:1px;
+    background:rgba(11,31,30,0.12);
+    margin-top:48px;
+    border:1px solid rgba(11,31,30,0.12);
+  }
+  .feature{
+    background:var(--paper);
+    padding:26px 24px;
+  }
+  .feature .glyph{ font-size:20px; }
+  .feature h3{ font-family:var(--sans); font-size:15px; margin:14px 0 8px; }
+  .feature p{ font-size:13.5px; color:var(--muted-ink); margin:0; }
+  .feature.future{ background:var(--paper-2); }
+  .feature.future h3::after{
+    content:'planned';
+    font-size:10px;
+    color:var(--heat-deep);
+    border:1px solid var(--heat-deep);
+    padding:2px 7px;
+    border-radius:999px;
+    margin-left:10px;
+    vertical-align:middle;
+    font-family:var(--sans);
+  }
+
+  /* ---- Inside Temp Safe (exploded diagram) ---- */
+  #inside{ background:var(--paper); padding-top:40px; }
+  .exploded{
+    margin-top:50px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:48px;
+    align-items:center;
+  }
+  @media (max-width:820px){ .exploded{ grid-template-columns:1fr; } }
+  .device-svg{ width:100%; height:auto; }
+  .layer{ transition:transform .5s ease, opacity .5s ease; }
+  .layer-list{ display:flex; flex-direction:column; gap:0; }
+  .layer-item{
+    padding:20px 0;
+    border-top:1px solid rgba(11,31,30,0.14);
+    opacity:0.35;
+    transition:opacity .35s ease;
+  }
+  .layer-item:last-child{ border-bottom:1px solid rgba(11,31,30,0.14); }
+  .layer-item.active{ opacity:1; }
+  .layer-item .tag{ font-size:12px; color:var(--heat-deep); }
+  .layer-item h4{ font-family:var(--serif); font-weight:500; font-size:19px; margin:6px 0 6px; }
+  .layer-item p{ font-size:13.5px; color:var(--muted-ink); margin:0; max-width:38ch; }
+
+  /* ---- Footer / LinkedIn CTA ---- */
+  footer{
+    background:var(--ink);
+    color:var(--muted);
+    text-align:center;
+    padding:70px 32px 90px;
+    border-top:1px solid var(--line);
+  }
+  footer .fname{ font-family:var(--serif); font-style:italic; color:var(--cool); font-size:22px; }
+  footer p{ font-size:13px; max-width:46ch; margin:16px auto 0; }
+</style>
+</head>
+<body>
+
+<div id="navdot"><span class="dot"></span>Temp Safe</div>
+<div id="gauge">
+  <div class="tube"><div class="fill" id="gaugeFill"></div></div>
+  <div class="bulb" id="gaugeBulb"></div>
+  <div class="reading" id="gaugeReading">25°C</div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="eyebrow">A portable temperature-control device for temperature-sensitive medication</div>
+  <h1>TEMP <span class="safe">SAFE</span></h1>
+  <p class="tagline">Because every dose deserves the right temperature.</p>
+  <button class="start-btn" onclick="document.getElementById('scene1').scrollIntoView({behavior:'smooth'})">
+    Start the story
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
+  <div class="scroll-hint"><div class="bar"></div>scroll</div>
+</section>
+
+<!-- SCENE 1: PROBLEM -->
+<section class="scene" id="scene1">
+  <div class="wrap">
+    <span class="scene-label reveal">Scene 1 — The problem</span>
+    <h2 class="reveal d1">Mariam is leaving the house.</h2>
+    <p class="lead reveal d2">She lives with diabetes and carries her insulin everywhere she goes. Today, like most days in this climate, the sun isn't gentle.</p>
+    <div class="heat-stage reveal d3" id="heatStage">
+      <div class="heat-readout"><span class="num" id="heatNum">25°</span><span class="flag" id="heatFlag">outside temperature</span></div>
+      <div class="sun"></div>
+      <svg class="mariam" viewBox="0 0 100 150" xmlns="http://www.w3.org/2000/svg" aria-label="Illustration of Mariam holding her insulin case">
+        <ellipse cx="50" cy="144" rx="22" ry="4" fill="#000" opacity="0.12"/>
+
+        <!-- dress -->
+        <path d="M35 55 C31 75 29 100 33 132 C33 134 35 135 38 135 L62 135 C65 135 67 134 67 132 C71 100 69 75 65 55 Z" fill="#3f8f89"/>
+        <rect x="33" y="95" width="34" height="7" rx="3.5" fill="#ff6b35" opacity="0.9"/>
+
+        <!-- arms -->
+        <path d="M37 58 C29 66 25 82 28 99" stroke="#3f8f89" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M63 58 C69 66 71 78 70 91" stroke="#3f8f89" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <circle cx="70" cy="93" r="5" fill="#f2c9a0"/>
+
+        <!-- case held in left hand -->
+        <rect class="case" x="13" y="93" width="21" height="16" rx="4" fill="#6fe7dd"/>
+        <rect x="21.3" y="98" width="6" height="2.2" fill="#0b1f1e"/>
+        <rect x="23.1" y="96.2" width="2.2" height="6" fill="#0b1f1e"/>
+        <circle cx="28" cy="100" r="5" fill="#f2c9a0"/>
+
+        <!-- neck + head -->
+        <rect x="44" y="44" width="12" height="10" rx="3" fill="#f2c9a0"/>
+        <circle cx="50" cy="29" r="17" fill="#f2c9a0"/>
+
+        <!-- hair -->
+        <path d="M33 26 C31 12 41 6 50 6 C59 6 69 12 67 26 C67 34 65 40 61 44 L61 35 C61 31 58 28 54 28 L46 28 C42 28 39 31 39 35 L39 44 C35 40 33 34 33 26 Z" fill="#3a2a1f"/>
+        <circle cx="61" cy="12" r="3.4" fill="#ff6b35"/>
+        <circle cx="67" cy="12" r="3.4" fill="#ff6b35"/>
+        <circle cx="64" cy="12" r="1.8" fill="#0b1f1e"/>
+
+        <!-- face -->
+        <circle class="cheek" cx="41" cy="34" r="3" fill="#ff6b35"/>
+        <circle class="cheek" cx="59" cy="34" r="3" fill="#ff6b35"/>
+        <circle cx="44" cy="28" r="1.8" fill="#0b1f1e"/>
+        <circle cx="56" cy="28" r="1.8" fill="#0b1f1e"/>
+        <path d="M45 35 Q50 38 55 35" stroke="#0b1f1e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="warn-line" id="warnLine">Above 30°C, insulin can start to lose potency within hours — and Mariam has no way to know it's happening.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 2: QUESTION -->
+<section class="scene" id="scene2">
+  <div class="wrap">
+    <p class="quote reveal">"How can I keep my medicine safe when I'm outside?"</p>
+    <div class="quote-name reveal d1">— Mariam</div>
+    <div class="arrive reveal d2">Temp Safe.</div>
+  </div>
+</section>
+
+<!-- SCENE 3: MEET TEMP SAFE -->
+<section class="scene" id="scene3">
+  <div class="wrap">
+    <span class="scene-label reveal">Scene 3 — Meet Temp Safe</span>
+    <h2 class="reveal d1">One device, five parts working together.</h2>
+    <p class="lead reveal d2">Tap a part to see what it does.</p>
+    <div class="parts-grid reveal d3">
+      <div class="part-card" tabindex="0" role="button">
+        <div class="glyph">🔋</div>
+        <h3>Battery</h3>
+        <p>Powers the sensor and cooling system through a full day away from home, without needing a wall socket.</p>
+      </div>
+      <div class="part-card" tabindex="0" role="button">
+        <div class="glyph">🌡️</div>
+        <h3>Temperature sensor</h3>
+        <p>Reads the internal temperature continuously and reports it to the control unit in real time.</p>
+      </div>
+      <div class="part-card" tabindex="0" role="button">
+        <div class="glyph">❄️</div>
+        <h3>Cooling system</h3>
+        <p>Responds automatically the moment the temperature drifts outside the safe range for the medication.</p>
+      </div>
+      <div class="part-card" tabindex="0" role="button">
+        <div class="glyph">🧠</div>
+        <h3>Control unit</h3>
+        <p>The decision-maker: compares the sensor reading against the safe range and switches cooling on or off.</p>
+      </div>
+      <div class="part-card" tabindex="0" role="button">
+        <div class="glyph">💊</div>
+        <h3>Medicine compartment</h3>
+        <p>An insulated chamber sized for daily doses, kept separate from the electronics.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 4: HOW IT WORKS -->
+<section class="scene" id="scene4">
+  <div class="wrap">
+    <span class="scene-label reveal">Scene 4 — How it works</span>
+    <h2 class="reveal d1">From heat outside to stability inside.</h2>
+    <p class="lead reveal d2">Every part of Temp Safe exists to serve one loop, running continuously while the device is in use.</p>
+    <div class="flow reveal d3" id="flow">
+      <div class="flow-step"><span class="idx">i</span><span class="name">Temperature sensor <b>reads</b> the internal temperature</span></div>
+      <div class="flow-step"><span class="idx">ii</span><span class="name">Control unit <b>compares</b> it to the safe range</span></div>
+      <div class="flow-step"><span class="idx">iii</span><span class="name">Cooling system <b>activates</b> when needed</span></div>
+      <div class="flow-step"><span class="idx">iv</span><span class="name">Temperature <b>stabilises</b></span></div>
+      <div class="flow-step"><span class="idx">v</span><span class="name">Medicine <b>stays protected</b></span></div>
+    </div>
+    <div class="before-after reveal d3">
+      <div class="ba-block before"><div class="val">35°C</div><div class="cap">outside, unprotected</div></div>
+      <div class="arrow-sep">→</div>
+      <div class="ba-block after"><div class="val">✓</div><div class="cap">stable, inside Temp Safe</div></div>
+    </div>
+    <p class="note">The exact temperature range is defined by the device's technical specification and the medication being stored — we keep it precise rather than promotional.</p>
+  </div>
+</section>
+
+<!-- SCENE 5: BACK TO MARIAM -->
+<section class="scene" id="scene5">
+  <div class="wrap">
+    <span class="scene-label reveal">Scene 5 — Back to Mariam</span>
+    <h2 class="reveal d1">She places the insulin inside. Closes it. Walks out into the heat.</h2>
+    <div class="stable-badge reveal d2"><span class="pulse"></span>Temperature stable</div>
+    <p class="closing-line reveal d3">Now she can focus on her day — not her medicine.</p>
+  </div>
+</section>
+
+<!-- SCENE 6: PRODUCT -->
+<section class="scene product-section" id="scene6">
+  <div class="wrap">
+    <span class="scene-label reveal">The product</span>
+    <h2 class="reveal d1">What is Temp Safe?</h2>
+    <p class="lead reveal d2">A portable, temperature-controlled case designed to help protect temperature-sensitive medication during transportation and everyday activity — built for people who can't always be near a fridge.</p>
+    <div class="feature-grid reveal d3">
+      <div class="feature"><div class="glyph">🌡️</div><h3>Temperature monitoring</h3><p>Continuous internal readings, not a one-time check.</p></div>
+      <div class="feature"><div class="glyph">❄️</div><h3>Temperature control</h3><p>Active cooling keeps the compartment within a defined safe range.</p></div>
+      <div class="feature"><div class="glyph">🔋</div><h3>Battery powered</h3><p>Rechargeable and untethered from a wall outlet.</p></div>
+      <div class="feature"><div class="glyph">🎒</div><h3>Portable design</h3><p>Sized to travel in a bag, not just sit on a shelf.</p></div>
+      <div class="feature future"><div class="glyph">📱</div><h3>Smart monitoring</h3><p>A future companion app to check status remotely.</p></div>
+      <div class="feature future"><div class="glyph">☀️</div><h3>Solar-powered version</h3><p>A future revision extending battery life off-grid.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- INSIDE TEMP SAFE -->
+<section class="scene product-section" id="inside">
+  <div class="wrap">
+    <span class="scene-label reveal">A closer look</span>
+    <h2 class="reveal d1">Inside Temp Safe.</h2>
+    <p class="lead reveal d2">Scroll to see it come apart, layer by layer.</p>
+    <div class="exploded">
+      <svg class="device-svg" id="deviceSvg" viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg">
+        <rect class="layer" id="layerCase" x="30" y="20" width="240" height="300" rx="22" fill="none" stroke="#0b1f1e" stroke-width="2.5"/>
+        <g class="layer" id="layerMed">
+          <rect x="55" y="50" width="190" height="70" rx="10" fill="#6fe7dd" opacity="0.25" stroke="#0b1f1e" stroke-width="1.5"/>
+          <text x="150" y="90" text-anchor="middle" font-family="Space Grotesk" font-size="13" fill="#0b1f1e">MEDICINE</text>
+        </g>
+        <g class="layer" id="layerSensor">
+          <rect x="55" y="135" width="190" height="45" rx="8" fill="#ff6b35" opacity="0.18" stroke="#0b1f1e" stroke-width="1.5"/>
+          <text x="150" y="162" text-anchor="middle" font-family="Space Grotesk" font-size="12" fill="#0b1f1e">SENSOR + CONTROL UNIT</text>
+        </g>
+        <g class="layer" id="layerCooling">
+          <rect x="55" y="195" width="190" height="45" rx="8" fill="#6fe7dd" opacity="0.3" stroke="#0b1f1e" stroke-width="1.5"/>
+          <text x="150" y="222" text-anchor="middle" font-family="Space Grotesk" font-size="12" fill="#0b1f1e">COOLING SYSTEM</text>
+        </g>
+        <g class="layer" id="layerBattery">
+          <rect x="55" y="255" width="190" height="45" rx="8" fill="#0b1f1e" opacity="0.85"/>
+          <text x="150" y="282" text-anchor="middle" font-family="Space Grotesk" font-size="12" fill="#efeae0">BATTERY</text>
+        </g>
+      </svg>
+      <div class="layer-list" id="layerList">
+        <div class="layer-item" data-layer="layerMed"><span class="tag">01</span><h4>Medicine compartment</h4><p>Insulated and separated from every electronic component, sized for a day's dose.</p></div>
+        <div class="layer-item" data-layer="layerSensor"><span class="tag">02</span><h4>Sensor & control unit</h4><p>Reads temperature continuously and decides when cooling needs to switch on.</p></div>
+        <div class="layer-item" data-layer="layerCooling"><span class="tag">03</span><h4>Cooling system</h4><p>Draws heat away from the compartment to hold it inside the safe range.</p></div>
+        <div class="layer-item" data-layer="layerBattery"><span class="tag">04</span><h4>Battery</h4><p>Keeps the whole loop running for a full day away from a power source.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fname">Temp Safe</div>
+  <p>Designed and developed as an interactive storytelling experience introducing a portable temperature-control solution for temperature-sensitive medication — combining animated narrative, product visualization and technical communication.</p>
+</footer>
+
+<script>
+// Reveal on scroll
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){ e.target.classList.add('in'); }
+  });
+}, {threshold:0.2});
+revealEls.forEach(el=>io.observe(el));
+
+// Nav dot + gauge visibility after hero
+const hero = document.querySelector('.hero');
+const navdot = document.getElementById('navdot');
+const gauge = document.getElementById('gauge');
+const heroIO = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    const show = !e.isIntersecting;
+    navdot.classList.toggle('visible', show);
+    gauge.classList.toggle('visible', show);
+  });
+}, {threshold:0.05});
+heroIO.observe(hero);
+
+// Part cards toggle
+document.querySelectorAll('.part-card').forEach(card=>{
+  const toggle = ()=>card.classList.toggle('open');
+  card.addEventListener('click', toggle);
+  card.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); toggle(); } });
+});
+
+// Scene 1: heat rising as user scrolls through it
+const heatStage = document.getElementById('heatStage');
+const heatNum = document.getElementById('heatNum');
+const heatFlag = document.getElementById('heatFlag');
+const scene1 = document.getElementById('scene1');
+
+function updateHeat(){
+  const rect = scene1.getBoundingClientRect();
+  const vh = window.innerHeight;
+  // progress 0 -> 1 as the section moves through the viewport
+  let progress = 1 - (rect.bottom - vh*0.3) / (rect.height);
+  progress = Math.max(0, Math.min(1, progress));
+  const temp = Math.round(25 + progress*13); // 25 -> 38
+  heatNum.textContent = temp + '°';
+  heatStage.classList.toggle('hot', temp >= 32);
+  heatFlag.textContent = temp >= 32 ? 'rising fast' : 'outside temperature';
+}
+
+// Gauge (global scroll progress translated to a temperature narrative)
+const gaugeFill = document.getElementById('gaugeFill');
+const gaugeBulb = document.getElementById('gaugeBulb');
+const gaugeReading = document.getElementById('gaugeReading');
+const scene4 = document.getElementById('scene4');
+const scene5 = document.getElementById('scene5');
+
+function heatColor(t){
+  if(t < 30) return 'var(--cool)';
+  if(t < 34) return '#ffb199';
+  return 'var(--heat)';
+}
+
+function updateGauge(){
+  const docTop = window.scrollY;
+  const docHeight = document.body.scrollHeight - window.innerHeight;
+  const overall = Math.max(0, Math.min(1, docTop/docHeight));
+
+  const s1 = scene1.getBoundingClientRect();
+  const s4 = scene4.getBoundingClientRect();
+  const s5 = scene5.getBoundingClientRect();
+  const vh = window.innerHeight;
+
+  let temp = 25;
+  if(s1.top < vh && s1.bottom > 0){
+    let p = 1 - (s1.bottom - vh*0.3) / s1.height;
+    p = Math.max(0, Math.min(1, p));
+    temp = 25 + p*13;
+  } else if(s4.top < vh && s4.bottom > 0){
+    let p = 1 - (s4.bottom - vh*0.3) / s4.height;
+    p = Math.max(0, Math.min(1, p));
+    temp = 35 - p*27; // 35 down to 8, stabilising
+  } else if(s5.top < vh*0.6){
+    temp = 8;
+  } else if(s1.top >= vh){
+    temp = 25;
+  }
+
+  const pct = Math.max(6, Math.min(100, ((temp-5)/33)*100));
+  gaugeFill.style.height = pct + '%';
+  const col = heatColor(temp);
+  gaugeFill.style.background = temp >= 33 ? 'linear-gradient(180deg, var(--heat-deep), var(--heat))' : (temp<=10 ? 'var(--cool)' : 'linear-gradient(180deg, var(--heat), var(--cool))');
+  gaugeBulb.style.background = temp >= 33 ? 'var(--heat)' : 'var(--cool-dim)';
+  gaugeReading.textContent = Math.round(temp) + '°C';
+}
+
+// Flow steps activation (scene 4)
+const flowSteps = document.querySelectorAll('.flow-step');
+function updateFlow(){
+  const rect = scene4.getBoundingClientRect();
+  const vh = window.innerHeight;
+  let p = 1 - (rect.bottom - vh*0.3) / rect.height;
+  p = Math.max(0, Math.min(0.999, p));
+  const activeIdx = Math.floor(p * flowSteps.length);
+  flowSteps.forEach((el,i)=> el.classList.toggle('active', i<=activeIdx));
+}
+
+// Exploded diagram layer sync
+const layerItems = document.querySelectorAll('.layer-item');
+const layerIds = ['layerMed','layerSensor','layerCooling','layerBattery'];
+const offsets = { layerMed:-40, layerSensor:-10, layerCooling:10, layerBattery:40 };
+
+function setExplode(amount){
+  layerIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.transform = `translateY(${offsets[id]*amount}px)`;
+  });
+}
+
+const insideIO = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting) setExplode(1); else setExplode(0); });
+}, {threshold:0.4});
+insideIO.observe(document.getElementById('inside'));
+
+const layerObserverOpts = {threshold:0.5};
+const layerIO = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    const id = e.target.dataset.layer;
+    e.target.classList.toggle('active', e.isIntersecting);
+  });
+}, layerObserverOpts);
+layerItems.forEach(el=>layerIO.observe(el));
+
+function onScroll(){
+  updateHeat();
+  updateGauge();
+  updateFlow();
+}
+window.addEventListener('scroll', onScroll, {passive:true});
+window.addEventListener('resize', onScroll);
+onScroll();
+</script>
+</body>
+</html>
